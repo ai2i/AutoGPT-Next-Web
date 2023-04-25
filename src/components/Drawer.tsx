@@ -9,14 +9,12 @@ import {
   FaRocket,
   FaSignInAlt,
   FaSignOutAlt,
-  FaTwitter,
   FaUser,
   FaLanguage,
   FaWeixin,
   FaQq,
   FaGlobe,
 } from "react-icons/fa";
-import { BiPlus } from "react-icons/bi";
 import clsx from "clsx";
 import { useAuth } from "../hooks/useAuth";
 import type { Session } from "next-auth";
@@ -32,26 +30,19 @@ const Drawer = ({
   showWeChat,
   showQQ,
   showKnowledgePlanet,
+  handleLanguageChange,
 }: {
   showHelp: () => void;
   showSettings: () => void;
   showWeChat: () => void;
   showQQ: () => void;
   showKnowledgePlanet: () => void;
+  handleLanguageChange: () => void;
 }) => {
   const [showDrawer, setShowDrawer] = useState(false);
   const { session, signIn, signOut, status } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
-
-  // TODO: enable for crud
-  // const [animationParent] = useAutoAnimate();s
-  // const query = api.agent.getAll.useQuery(undefined, {
-  //   enabled:
-  //     status == "authenticated" && env.NEXT_PUBLIC_VERCEL_ENV != "production",
-  // });
-  // const router = useRouter();
-  //
 
   const sub = api.account.subscribe.useMutation({
     onSuccess: async (url) => {
@@ -65,7 +56,7 @@ const Drawer = ({
   });
 
   const manage = api.account.manage.useMutation({
-    onSuccess: async (url) => {
+    onSuccess: async (url: any) => {
       if (!url) return;
       await router.push(url);
     },
@@ -75,13 +66,9 @@ const Drawer = ({
     setShowDrawer((prevState) => !prevState);
   };
 
-  const onToggleLanguageClick = () => {
-    const { pathname, asPath, query, locale } = router;
-    router.push({ pathname, query }, asPath, {
-      locale: locale === "en" ? "zh" : "en",
-    });
-  };
   const userAgents = query.data ?? [];
+
+  const authEnabled = env.NEXT_PUBLIC_FF_AUTH_ENABLED;
 
   return (
     <>
@@ -103,7 +90,7 @@ const Drawer = ({
       >
         <div className="flex flex-col gap-1 overflow-hidden">
           <div className="mb-2 flex justify-center gap-2">
-            {t("my-agents")}
+            {authEnabled ? t("my-agents") : t("create-agent")}
             <button
               className="z-40 rounded-md border-2 border-white/20 bg-zinc-900 p-2 text-white hover:bg-zinc-700 md:hidden"
               onClick={toggleDrawer}
@@ -122,10 +109,12 @@ const Drawer = ({
               />
             ))}
 
-            {status === "unauthenticated" && <div>{t("sign-in")}</div>}
-            {status === "authenticated" && userAgents.length === 0 && (
-              <div>{t("create-agent")}</div>
+            {authEnabled && status === "unauthenticated" && (
+              <div>{t("sign-in-tips")}</div>
             )}
+            {authEnabled &&
+              status === "authenticated" &&
+              userAgents.length === 0 && <div>{t("create-agent")}</div>}
           </ul>
         </div>
 
@@ -180,7 +169,7 @@ const Drawer = ({
           <DrawerItem
             icon={<FaLanguage />}
             text="language"
-            onClick={onToggleLanguageClick}
+            onClick={handleLanguageChange}
           />
           {env.NEXT_PUBLIC_FF_SUB_ENABLED ||
             (router.query.pro && (
@@ -218,7 +207,7 @@ const DrawerItem = (props: DrawerItemProps) => {
     return (
       <a
         className={clsx(
-          "flex cursor-pointer flex-row items-center rounded-md rounded-md p-2 hover:bg-white/5",
+          "flex cursor-pointer flex-row items-center rounded-md p-2 hover:bg-white/5",
           border && "border-[1px] border-white/20",
           `${className || ""}`
         )}
@@ -253,7 +242,7 @@ const AuthItem: React.FC<{
   signOut: () => void;
 }> = ({ signIn, signOut, session }) => {
   const icon = session?.user ? <FaSignInAlt /> : <FaSignOutAlt />;
-  const text = session?.user ? "Sign Out" : "Sign In";
+  const text = session?.user ? "sign-out" : "sign-in";
   const onClick = session?.user ? signOut : signIn;
 
   return <DrawerItem icon={icon} text={text} onClick={onClick} />;
